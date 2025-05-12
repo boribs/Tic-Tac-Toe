@@ -4,7 +4,7 @@ from src.commons import *
 
 import numpy as np
 import cv2
-from cv2.typing import MatLike
+from cv2.typing import MatLike, Point
 
 
 class BoardDetector:
@@ -51,7 +51,13 @@ class BoardDetector:
         # cv2.waitKey(0)
 
         contours, _ = cv2.findContours(t, 1, cv2.CHAIN_APPROX_SIMPLE)
-        conts = cv2.drawContours(np.zeros(img.shape[:2], np.uint8), contours, -1, (255,255,255), 4)
+        conts = cv2.drawContours(
+            np.zeros(img.shape[:2], np.uint8), # pyright: ignore
+            contours,
+            -1,
+            (255,255,255),
+            4
+        )
         cv2.imshow('asdf', conts)
         cv2.waitKey(0)
 
@@ -98,6 +104,13 @@ class BoardDetector:
 
         print(len(intersections))
 
+        for rect in self.__find_rectangles(intersections, 10):
+            a, b, c, d = rect
+            cv2.line(out, a, b, (0, 0, 255), 3)
+            cv2.line(out, b, c, (0, 0, 255), 3)
+            cv2.line(out, c, d, (0, 0, 255), 3)
+            cv2.line(out, d, a, (0, 0, 255), 3)
+
         cv2.imshow('out', out)
         cv2.waitKey(0)
 
@@ -134,6 +147,43 @@ class BoardDetector:
         else:
             return None  # Intersection point not within both segments
 
+    def __find_rectangles(self, points: list[Point], threshold: float = 0.5) -> list[tuple[Point, Point, Point, Point]]:
+        """
+        Finds which pairs of points form a rectangle.
+        """
+
+        def pdist(a: Point, b: Point) -> float:
+            return ((a[0] - b[0])**2 + (a[1] - b[1])**2)**0.5
+
+        def similar(a: Point | float, b: Point | float):
+            if type(a) != float and type(b) != float:
+                return abs(a[0] - b[0]) < threshold and abs(a[1] - b[1]) < threshold # pyright: ignore
+            else:
+                return abs(a - b) < threshold # pyright: ignore
+
+        line_sum: dict[Point, Point] = {}
+        line_dist: dict[Point, float] = {}
+        lines: list[Point] = []
+        out: list[tuple[Point, Point, Point, Point]] = []
+
+        for i in range(len(points)):
+            a = points[i]
+            for j in range(i + 1, len(points)):
+                b = points[j]
+                line_sum[(i, j)] = (a[0] + b[0], a[1] + b[1])
+                line_dist[(i, j)] = pdist(a, b)
+                lines.append((i, j))
+
+        for i in range(len(lines)):
+            for j in range(i + 1, len(lines)):
+                a = lines[i]
+                b = lines[j]
+
+                if similar(line_dist[a], line_dist[b]) and \
+                    similar(line_sum[a], line_sum[b]):
+                    out.append((points[a[0]], points[b[0]], points[a[1]], points[b[1]]))
+
+        return out
 
     def __detect_slot(self, slot: MatLike) -> BoardSlot:
         """
