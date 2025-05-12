@@ -47,7 +47,7 @@ class BoardDetector:
         thresh1 = cv2.morphologyEx(thresh1, cv2.MORPH_OPEN, kernel)
 
         t = cv2.bitwise_not(thresh1)
-        cv2.imshow('asdf', t)
+        cv2.imshow('out', t)
         # cv2.waitKey(0)
 
         contours, _ = cv2.findContours(t, 1, cv2.CHAIN_APPROX_SIMPLE)
@@ -58,7 +58,7 @@ class BoardDetector:
             (255,255,255),
             4
         )
-        cv2.imshow('asdf', conts)
+        cv2.imshow('out', conts)
         cv2.waitKey(0)
 
         lines = cv2.HoughLinesP(
@@ -95,21 +95,31 @@ class BoardDetector:
                 if intr:
                     for point in intersections:
                         d = dist_points(intr, point)
-                        print(d, point, intr)
                         if d < 15: break
                     else:
-                        print('a')
                         intersections.append(intr)
                         cv2.circle(out, intr, 3, (255,0,255), 3)
 
-        print(len(intersections))
+        rects = self.__find_rectangles(intersections, 20)
 
-        for rect in self.__find_rectangles(intersections, 10):
-            a, b, c, d = rect
-            cv2.line(out, a, b, (0, 0, 255), 3)
-            cv2.line(out, b, c, (0, 0, 255), 3)
-            cv2.line(out, c, d, (0, 0, 255), 3)
-            cv2.line(out, d, a, (0, 0, 255), 3)
+        if not rects:
+            return None
+
+        if len(rects) > 1:
+            print("Me estoy confundiendo! Pon el tablero sobre una superficie con menos textura")
+            return None
+
+        a, b, c, d = rects[0]
+        cv2.line(out, a, b, (0, 0, 255), 3)
+        cv2.line(out, b, c, (0, 0, 255), 3)
+        cv2.line(out, c, d, (0, 0, 255), 3)
+        cv2.line(out, d, a, (0, 0, 255), 3)
+
+        for cnt in contours:
+            inside = cv2.pointPolygonTest(cnt, a, False)
+            if inside >= 0:
+                cv2.drawContours(out, [cnt], 0, (255, 255, 0), 3)
+                break
 
         cv2.imshow('out', out)
         cv2.waitKey(0)
@@ -151,6 +161,10 @@ class BoardDetector:
         """
         Finds which pairs of points form a rectangle.
         """
+
+        # Para cada par de puntos sacar el punto que es la suma de los dos y la distancia entre estos.
+        # Dos parejas de puntos serán los vértices de un rectángulo si sus distancias
+        # son iguales y sus sumas son iguales.
 
         def pdist(a: Point, b: Point) -> float:
             return ((a[0] - b[0])**2 + (a[1] - b[1])**2)**0.5
