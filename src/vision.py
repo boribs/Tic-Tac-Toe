@@ -64,17 +64,17 @@ class BoardDetector:
             maxLineGap=0,
         )
 
-        intersections: tuple[int, int] = []
+        intersections: list[Point] = []
         out = cv2.cvtColor(conts.copy(), cv2.COLOR_GRAY2BGR)
 
-        def dist_points(a: tuple[int, int], b: tuple[int, int]):
+        def dist_points(a: Point, b: Point):
             return (abs(a[0] - b[0]) ** 2 + abs(a[1] - b[1]) ** 2)**0.5
 
 
         i = True
         for line in lines:
-            x1, y1, x2, y2 = line[0]
-            cv2.line(out, (x1, y1), (x2, y2), (0,255,0) if i else (255,0,0), 1)
+            x1, y1, x2, y2 = line[0] # pyright: ignore
+            cv2.line(out, (x1, y1), (x2, y2), (0,255,0) if i else (255,0,0), 1) # pyright: ignore
             i = not i
 
         cv2.imshow('out', out)
@@ -119,7 +119,7 @@ class BoardDetector:
         if div == 0:
             return None  # Lines are parallel or coincident
 
-        d = (det(p1, p2), det(p3, p4))
+        d = (det(p1, p2), det(p3, p4)) # pyright: ignore
         x = det(d, xdiff) / div
         y = det(d, ydiff) / div
 
