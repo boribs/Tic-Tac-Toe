@@ -139,9 +139,68 @@ class BoardDetector:
         """
         Returns the shape within the slot. To be used within self.detect_board().
         """
+        def findCircle(image: MatLike):
+            gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+            gray = cv2.medianBlur(gray, 5)
+            circles = cv2.HoughCircles(
+                gray,
+                cv2.HOUGH_GRADIENT,
+                dp=1.2,
+                minDist=20,
+                param1=50,
+                param2=30,
+                minRadius=5,
+                maxRadius=50
+                )
 
-        # detecta qué hay en cada espacio
-        # `slot` es el recorte de la imagen original que
-        # solo contiene un espacio del tablero
+            if circles is not None: # pyright: ignore
+                return True
+            else:
+                return False
+        
+        def findCross(image: MatLike):
+            gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+            gray = cv2.GaussianBlur(gray, (5, 5), 0)
+            edges = cv2.Canny(gray, 50, 150, apertureSize=3)
 
-        raise Exception('Not implemented')
+            lines = cv2.HoughLinesP(
+                edges,
+                rho=1,
+                theta=np.pi / 180,
+                threshold=20,
+                minLineLength=10,
+                maxLineGap=20
+            )
+
+            if lines is None or len(lines) < 2: #pyright: ignore
+                return False 
+
+            def ccw(A: tuple[int, int], B: tuple[int, int], C: tuple[int, int]):
+                return (C[1] - A[1]) * (B[0] - A[0]) > (B[1] - A[1]) * (C[0] - A[0])
+
+            def lines_intersect(l1: list[int], l2: list[int]):
+                A = (l1[0], l1[1])
+                B = (l1[2], l1[3]) 
+                C = (l2[0], l2[1]) 
+                D = (l2[2], l2[3]) 
+                return ccw(A, C, D) != ccw(B, C, D) and ccw(A, B, C) != ccw(A, B, D)
+            
+            for i in range(len(lines)):
+                for j in range(i + 1, len(lines)):
+                    line1 = lines[i][0]
+                    line2 = lines[j][0]
+
+                    if lines_intersect(line1, line2):
+                        return True    
+            
+            return False
+            
+        if findCircle(slot):
+            return BoardSlot.Circle
+        elif findCross(slot):
+            return BoardSlot.Cross
+        else:
+            return BoardSlot.Empty
+        
+    
+    
