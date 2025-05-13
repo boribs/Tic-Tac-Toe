@@ -31,7 +31,7 @@ class TicTacToeAI:
         """
         Checks for win condition: 3 in a row.
         """
-        
+
         win_tuples = [(0,1,2), # filas
                       (3,4,5),
                       (6,7,8),
@@ -42,16 +42,15 @@ class TicTacToeAI:
                       (2,4,6),
                       ]
 
-       
+
         for a,b,c in win_tuples:
-            print(a)
             if board[a] == board[b] == board[c] and board[a] != BoardSlot.Empty:
                 return board[a]
         if BoardSlot.Empty not in board:
             return BoardSlot.Tie
         else:
             return BoardSlot.Empty
-           
+
 
     def main(self):
         """
@@ -74,7 +73,7 @@ class TicTacToeAI:
             # cv2.imshow('board', board)
             if cv2.waitKey(1) & 0xff == ord('q'):
                 break
-            
+
             # alguien ya ganó
             if self.check_win(self.previous_board) == BoardSlot.Circle:
                 print(f"Ganó: O")
@@ -85,7 +84,7 @@ class TicTacToeAI:
             elif self.check_win(self.previous_board) == BoardSlot.Tie:
                 print("Empate")
                 break
-            else: 
+            else:
                 pass
 
             if board:
@@ -97,7 +96,7 @@ class TicTacToeAI:
                     i, slot = next_move
                     board[i] = slot
                     highlight = next_move
-                
+
                 self.previous_board = board.copy()
 
 
@@ -111,5 +110,5 @@ class TicTacToeAI:
             elif self.check_win(self.previous_board) == BoardSlot.Tie:
                 print("Empate")
                 break
-            else: 
+            else:
                 pass
