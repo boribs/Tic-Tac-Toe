@@ -114,7 +114,7 @@ class TicTacToeAI:
                     next_move = self.next_move(board)
                     print(next_move)
                     # update board state
-                    # i, slot = next_move
+                    i, slot = next_move
                     # board[i] = slot
                     highlight = next_move
 
