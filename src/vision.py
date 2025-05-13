@@ -206,9 +206,6 @@ class BoardDetector:
         # Dos parejas de puntos serán los vértices de un rectángulo si sus distancias
         # son iguales y sus sumas son iguales.
 
-        def pdist(a: Point, b: Point) -> float:
-            return ((a[0] - b[0])**2 + (a[1] - b[1])**2)**0.5
-
         def similar(a: Point | float, b: Point | float):
             if type(a) != float and type(b) != float:
                 return abs(a[0] - b[0]) < threshold and abs(a[1] - b[1]) < threshold # pyright: ignore
@@ -244,15 +241,35 @@ class BoardDetector:
 
         return out
 
-    def __extract_slots(self, rotated: MatLike, a: Point, b: Point, c: Point, d: Point, padding: int = 2) -> BoardLike:
+    def __extract_slots(self, rotated: MatLike, points: list[Point], padding: int = 2) -> BoardLike:
         """
         Extracts the different slot images and analyzes them.
         """
 
-        ax, ay = a
-        bx, by = b
-        cx, cy = c
-        dx, dy = d
+        a, b, c, d = 0, 0, 0, 0
+        m = 1000000
+        dists = [pdist(p, (0, 0)) for p in points]
+
+        for i, dist in enumerate(dists):
+            if dist < m:
+                m = dists[i]
+                a = i
+
+        for i in range(len(points)):
+            if i == a: continue
+
+            point = points[i]
+            if abs(point[1] - points[a][1]) < 20:
+                b = i
+            elif abs(point[0] - points[a][0]) < 20:
+                d = i
+            else:
+                c = i
+
+        ax, ay = points[a]
+        bx, by = points[b]
+        cx, cy = points[c]
+        dx, dy = points[d]
 
         slot_images = [
             rotated[padding:ay-padding, padding:ax-padding],       # 0
