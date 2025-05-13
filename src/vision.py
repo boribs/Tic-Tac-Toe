@@ -5,6 +5,7 @@ from src.commons import *
 import numpy as np
 import cv2
 from cv2.typing import MatLike, Point
+import math
 
 
 class BoardDetector:
@@ -32,10 +33,6 @@ class BoardDetector:
         Finds a board in an image. Updates self.detected_lines and
         returns new filled BoardLike.
         """
-
-        # detecta el tablero y las figuras en él
-        # la idea es que se haga un recorte de los rectángulos y se pasen a
-        # __detect_slot() para que reconozca qué figura es
 
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         kernel = np.ones((5,5), np.uint8)
@@ -110,19 +107,62 @@ class BoardDetector:
             return None
 
         a, b, c, d = rects[0]
-        cv2.line(out, a, b, (0, 0, 255), 3)
+        cv2.line(out, a, b, (255, 0, 255), 3)
         cv2.line(out, b, c, (0, 0, 255), 3)
         cv2.line(out, c, d, (0, 0, 255), 3)
         cv2.line(out, d, a, (0, 0, 255), 3)
 
+        cv2.imshow('out', out)
+        cv2.waitKey(0)
+
         for cnt in contours:
             inside = cv2.pointPolygonTest(cnt, a, False)
             if inside >= 0:
-                cv2.drawContours(out, [cnt], 0, (255, 255, 0), 3)
+                x,y,w,h = cv2.boundingRect(cnt)
+                cv2.rectangle(out,(x,y),(x+w,y+h),(0,255,0),2)
+                cv2.imshow('out', out)
+                cv2.waitKey(0)
+
+                padding = 10
+                cropped = cv2.cvtColor(conts.copy()[y-padding:y+h+padding, x-padding:x+w+padding], cv2.COLOR_GRAY2BGR)
+                rows, cols, _ = cropped.shape
+                rot = math.atan2((a[1] - b[1]), (a[0] - b[0]))
+
+                # puntos relevantes (rectángulo central) a imagen recortada
+                center = (cols // 2, rows // 2)
+                a = self.__rotate_point((a[0]-x + padding, a[1]-y + padding), center, -rot)
+                b = self.__rotate_point((b[0]-x + padding, b[1]-y + padding), center, -rot)
+                c = self.__rotate_point((c[0]-x + padding, c[1]-y + padding), center, -rot)
+                d = self.__rotate_point((d[0]-x + padding, d[1]-y + padding), center, -rot)
+
+                # rotar imagen para que el tablero quede derecho
+                mat = cv2.getRotationMatrix2D(center, rot * 180 / math.pi, 1)
+                rotated = cv2.warpAffine(cropped, mat, (cols, rows))
+
+                cv2.circle(rotated, a, 3, (255,0,255), 3)
+                cv2.circle(rotated, b, 3, (255,0,255), 3)
+                cv2.circle(rotated, c, 3, (255,0,255), 3)
+                cv2.circle(rotated, d, 3, (255,0,255), 3)
+
+                # rotar puntos relevantes y mover a imagen recortada
+
+                cv2.imshow('out', rotated)
+                cv2.waitKey(0)
+
                 break
 
-        cv2.imshow('out', out)
-        cv2.waitKey(0)
+    def __rotate_point(self, p: Point, around: Point, angle: float) -> Point:
+        """
+        Rotates the point `p` around another point `around`.
+        """
+
+        x0, y0 = around
+        x1, y1 = p
+
+        x2 = ((x1 - x0) * math.cos(angle)) - ((y1 - y0) * math.sin(angle)) + x0;
+        y2 = ((x1 - x0) * math.sin(angle)) + ((y1 - y0) * math.cos(angle)) + y0;
+
+        return (int(x2), int(y2))
 
     def __compute_intersection(self, line1: MatLike, line2: MatLike):
         """
