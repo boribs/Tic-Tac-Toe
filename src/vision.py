@@ -128,7 +128,7 @@ class BoardDetector:
                 rows, cols, _ = cropped.shape
                 rot = math.atan2((a[1] - b[1]), (a[0] - b[0]))
 
-                # puntos relevantes (rectángulo central) a imagen recortada
+                # puntos relevantes (rectángulo central) a imagen rotada
                 center = (cols // 2, rows // 2)
                 a = self.__rotate_point((a[0]-x + padding, a[1]-y + padding), center, -rot)
                 b = self.__rotate_point((b[0]-x + padding, b[1]-y + padding), center, -rot)
@@ -139,15 +139,15 @@ class BoardDetector:
                 mat = cv2.getRotationMatrix2D(center, rot * 180 / math.pi, 1)
                 rotated = cv2.warpAffine(cropped, mat, (cols, rows))
 
-                cv2.circle(rotated, a, 3, (255,0,255), 3)
+                cv2.circle(rotated, a, 3, (0,0,255), 3)
                 cv2.circle(rotated, b, 3, (255,0,255), 3)
-                cv2.circle(rotated, c, 3, (255,0,255), 3)
-                cv2.circle(rotated, d, 3, (255,0,255), 3)
-
-                # rotar puntos relevantes y mover a imagen recortada
+                cv2.circle(rotated, c, 3, (0,255,0), 3)
+                cv2.circle(rotated, d, 3, (255,0,0), 3)
 
                 cv2.imshow('out', rotated)
                 cv2.waitKey(0)
+
+                _ = self.__extract_slots(rotated, b, a, d, c)
 
                 break
 
@@ -238,6 +238,36 @@ class BoardDetector:
                     out.append((points[a[0]], points[b[0]], points[a[1]], points[b[1]]))
 
         return out
+
+    def __extract_slots(self, rotated: MatLike, a: Point, b: Point, c: Point, d: Point, padding: int = 2) -> BoardLike:
+        """
+        Extracts the different slot images and analyzes them.
+        """
+
+        ax, ay = a
+        bx, by = b
+        cx, cy = c
+        dx, dy = d
+
+        slot_images = [
+            rotated[:ay, :ax],     # 0
+            rotated[:by, ax:bx],   # 1
+            rotated[:by, bx:],     # 2
+            rotated[ay:dy, :dx],   # 3
+            rotated[ay:cy, ax:cx], # 4
+            rotated[ay:cy, cx:],   # 5
+            rotated[dy:, :dx],     # 6
+            rotated[dy:, dx:cx],   # 7
+            rotated[dy:, cx:],     # 8
+        ]
+
+        for i in range(len(slot_images)):
+            cv2.imshow(f"{i}", slot_images[i])
+        cv2.waitKey(0)
+
+        slots: BoardLike = []
+        return slots
+
 
     def __detect_slot(self, slot: MatLike) -> BoardSlot:
         """
