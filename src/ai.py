@@ -5,6 +5,7 @@ from src.commons import *
 from src.vision import BoardDetector
 from typing import Optional, Tuple # <--- Añadido
 import random
+from collections import Counter
 
 class TicTacToeAI:
     """
@@ -154,10 +155,18 @@ class TicTacToeAI:
                 break
             else:
                 pass
+            
+            current_counts = Counter(board)
+            previous_counts = Counter(self.previous_board)
+
+            same_distribution = (
+                current_counts[BoardSlot.Cross] == previous_counts[BoardSlot.Cross] and
+                current_counts[BoardSlot.Circle] == previous_counts[BoardSlot.Circle]
+            )
 
             if board:
                 highlight = None
-                if board != self.previous_board and BoardSlot.Empty in board:
+                if same_distribution and BoardSlot.Empty in board:
                     next_move = self.next_move(board)
                     print(next_move)
                     # update board state
