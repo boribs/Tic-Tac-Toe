@@ -15,8 +15,8 @@ class TicTacToeAI:
     def __init__(self, show_detections: bool = True):
         self.previous_board = [BoardSlot.Empty for _ in range(9)]
         self.show_detections = show_detections
-        self.ai_player = BoardSlot.Cross 
-        self.human_player = BoardSlot.Circle 
+        self.ai_player = BoardSlot.Circle 
+        self.human_player = BoardSlot.Cross 
 
     def get_empty_slots(self, board: BoardLike) -> list[int]: # <--- Método añadido
         """
@@ -159,14 +159,11 @@ class TicTacToeAI:
             current_counts = Counter(board)
             previous_counts = Counter(self.previous_board)
 
-            same_distribution = (
-                current_counts[BoardSlot.Cross] == previous_counts[BoardSlot.Cross] and
-                current_counts[BoardSlot.Circle] == previous_counts[BoardSlot.Circle]
-            )
+            opponent_moved = current_counts[BoardSlot.Cross] != previous_counts[BoardSlot.Cross]
 
             if board:
                 highlight = None
-                if same_distribution and BoardSlot.Empty in board:
+                if opponent_moved and BoardSlot.Empty in board:
                     next_move = self.next_move(board)
                     print(next_move)
                     # update board state
