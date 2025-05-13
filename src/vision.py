@@ -13,35 +13,24 @@ def pdist(a: Point, b: Point) -> float:
 
 class BoardDetector:
     """
-    Tools for detecting the board and the shapes on each slot.
+    Herramientas para detectar el tablero y las figuras en este.
     """
 
     def __init__(self, cam_id: int = 0):
         self.cam = cv2.VideoCapture(cam_id)
 
-    def show_detected(self, highlight: tuple[int, BoardSlot] | None):
+    def detect_board(self, img: MatLike) -> tuple[MatLike, list[Point], BoardLike] | None:
         """
-        Displays detected lines and slots.
-        Displays in another color a highlight.
-        """
-
-        # el highlight es el movimiento que escoge la computadora
-        # dibuja líneas de algún color sobre el tablero y sobre las figuras detectadas
-        raise Exception('Not implemented')
-
-
-    def detect_board(self, img: MatLike) -> BoardLike | None:
-        """
-        Finds a board in an image. Returns a filled BoardLike.
+        Detecta el tablero en la imagen.
         """
 
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         kernel = np.ones((3,3), np.uint8)
 
-        # turn into thresholded binary
+        # umbralizar a imagen binaria
         _, thresh1 = cv2.threshold(gray, 120, 255, cv2.THRESH_BINARY)
 
-        # remove noise from binary
+        # eliminar ruido
         thresh1 = cv2.morphologyEx(thresh1, cv2.MORPH_OPEN, kernel)
 
         t = cv2.bitwise_not(thresh1)
@@ -85,6 +74,7 @@ class BoardDetector:
         # cv2.imshow('out', out)
         # cv2.waitKey(0)
 
+        # buscar intersecciones que conformarán el rectángulo del centro del tablero
         for i, line in enumerate(lines):
             for j, line2 in enumerate(lines):
 
@@ -99,6 +89,7 @@ class BoardDetector:
                         intersections.append(intr)
                         cv2.circle(out, intr, 3, (255,0,255), 3)
 
+        # buscar rectángulo mencionado anteriormente
         rects = self.__find_rectangles(intersections, 20)
 
         if not rects:
@@ -119,6 +110,8 @@ class BoardDetector:
         # cv2.imshow('out', out)
         # cv2.waitKey(0)
 
+        # buscar el contorno al que pertenece alguna esquina del rectángulo
+        # solo hay un contorno que cumple con esta condición: el contorno del tablero.
         for cnt in contours:
             inside = cv2.pointPolygonTest(cnt, a, False)
             if inside >= 0:
@@ -133,6 +126,7 @@ class BoardDetector:
                 # cv2.imshow('out', out)
                 # cv2.waitKey(0)
 
+                # recortar el rectángulo de la imagen original
                 padding = 10
                 # cropped = cv2.cvtColor(conts.copy()[y-padding:y+h+padding, x-padding:x+w+padding], cv2.COLOR_GRAY2BGR)
                 cropped = img.copy()[y-padding:y+h+padding, x-padding:x+w+padding]
@@ -159,12 +153,53 @@ class BoardDetector:
                 cv2.imshow('out', display)
                 # cv2.waitKey(0)
 
-                return self.__extract_slots(rotated, [a, b, c, d])
+                return (
+                    display,
+                    [a, b, c, d],
+                    # buscar las figuras en cada segmento
+                    self.__extract_slots(rotated, [a, b, c, d], display)
+                )
+
+        # no encontró el rectángulo, no está el tablero
         return None
+
+    def draw_highlight(self, points: list[Point], highlight: BoardSlot, i: int, display: MatLike):
+        """
+        Dibuja el movimiento sugerido, en otro color.
+        """
+
+        a, b, c, d = points
+        ax, ay = a
+        bx, by = b
+        cx, cy = c
+        dx, dy = d
+
+        # centro de cada segmento
+        height, width = display.shape[:2]
+        slot_positions = [
+            (ay // 2, ax // 2),                      # 0
+            (ay // 2, (bx + ax) // 2),               # 1
+            (by // 2, (width + bx) // 2),            # 2
+            ((dy + ay) // 2, dx // 2),               # 3
+            ((cy + ay) // 2, (cx + ax) // 2),        # 4
+            ((cy + ay) // 2, (width + cx) // 2),     # 5
+            ((height + dy) // 2, dx // 2),           # 6
+            ((height + dy) // 2, (cx + dx) // 2),    # 7
+            ((height + dy) // 2, (width + cx) // 2), # 8
+        ]
+
+        if highlight == BoardSlot.Circle:
+            cv2.circle(display, slot_positions[i][::-1], 10, (255, 0, 0), 2)
+            print(slot_positions[i])
+        elif highlight == BoardSlot.Cross:
+            pass
+            j, k = slot_positions[i][::-1]
+            cv2.line(display, (j - 10, k - 10), (j + 10, k + 10), (255, 0, 0), 2)
+            cv2.line(display, (j + 10, k - 10), (j - 10, k + 10), (255, 0, 0), 2)
 
     def __rotate_point(self, p: Point, around: Point, angle: float) -> Point:
         """
-        Rotates the point `p` around another point `around`.
+        Rota el punto `p` alrededor de `around`.
         """
 
         x0, y0 = around
@@ -177,7 +212,7 @@ class BoardDetector:
 
     def __compute_intersection(self, line1: MatLike, line2: MatLike):
         """
-        Compute the intersection point of segments p1-p2 and p3-p4.
+        Calcula la intersección entre los segmentos de línea p1-p2 y p3-p4.
         """
 
         p1, p2 = line1[:2], line1[2:]
@@ -191,13 +226,13 @@ class BoardDetector:
 
         div = det(xdiff, ydiff)
         if div == 0:
-            return None  # Lines are parallel or coincident
+            return None  # Líneas paralelas
 
         d = (det(p1, p2), det(p3, p4)) # pyright: ignore
         x = det(d, xdiff) / div
         y = det(d, ydiff) / div
 
-        # Check if the intersection point (x, y) is within both segments
+        # Revisar que la intersección coincida en ambos segmentos de línea
         if (
             min(p1[0]-3, p2[0]-3) <= x <= max(p1[0]+3, p2[0]+3) and
             min(p1[1]-3, p2[1]-3) <= y <= max(p1[1]+3, p2[1]+3) and
@@ -206,11 +241,11 @@ class BoardDetector:
         ):
             return (int(x), int(y))
         else:
-            return None  # Intersection point not within both segments
+            return None
 
     def __find_rectangles(self, points: list[Point], threshold: float = 0.5) -> list[tuple[Point, Point, Point, Point]]:
         """
-        Finds which pairs of points form a rectangle.
+        Encuentra las esquinas que forman un rectángulo
         """
 
         # Para cada par de puntos sacar el punto que es la suma de los dos y la distancia entre estos.
@@ -252,9 +287,9 @@ class BoardDetector:
 
         return out
 
-    def __extract_slots(self, rotated: MatLike, points: list[Point], padding: int = 8) -> BoardLike:
+    def __extract_slots(self, rotated: MatLike, points: list[Point], display: MatLike, padding: int = 8) -> BoardLike:
         """
-        Extracts the different slot images and analyzes them.
+        Extrae los segmentos del tablero y encuentra la figura que tienen.
         """
 
         a, b, c, d = 0, 0, 0, 0
@@ -282,6 +317,7 @@ class BoardDetector:
         cx, cy = points[c]
         dx, dy = points[d]
 
+        # imágenes que contienen cada segmento
         slot_images = [
             rotated[padding:ay-padding, padding:ax-padding],       # 0
             rotated[padding:by-padding, ax+padding:bx-padding],    # 1
@@ -322,23 +358,22 @@ class BoardDetector:
             slots.append(slot)
 
             if slot == BoardSlot.Circle:
-                cv2.circle(rotated, slot_positions[i][::-1], 10, (0, 255, 0), 2)
+                cv2.circle(display, slot_positions[i][::-1], 10, (0, 255, 0), 2)
                 print(slot_positions[i])
             elif slot == BoardSlot.Cross:
-                pass
                 j, k = slot_positions[i][::-1]
-                cv2.line(rotated, (j - 10, k - 10), (j + 10, k + 10), (0, 255, 0), 2)
-                cv2.line(rotated, (j + 10, k - 10), (j - 10, k + 10), (0, 255, 0), 2)
+                cv2.line(display, (j - 10, k - 10), (j + 10, k + 10), (0, 255, 0), 2)
+                cv2.line(display, (j + 10, k - 10), (j - 10, k + 10), (0, 255, 0), 2)
 
-        cv2.imshow('out', rotated)
+        cv2.imshow('out', display)
 
         return slots
 
-
     def __detect_slot(self, slot: MatLike) -> BoardSlot:
         """
-        Returns the shape within the slot. To be used within self.detect_board().
+        Encuentra la figura dentro de un segmento.
         """
+
         def findCircle(image: MatLike):
             gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
             gray = cv2.medianBlur(gray, 5)
