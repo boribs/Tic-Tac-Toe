@@ -3,6 +3,7 @@
 import cv2
 from src.commons import *
 from src.vision import BoardDetector
+import random
 
 class TicTacToeAI:
     """
@@ -12,14 +13,19 @@ class TicTacToeAI:
     def __init__(self, show_detections: bool = True):
         self.previous_board = [BoardSlot.Empty for _ in range(9)]
         self.show_detections = show_detections
-        self.jugador = None
 
     def next_move(self, board: BoardLike) -> tuple[int, BoardSlot]:
         """
         Selects the next move based on a current position.
         """
+        empty_indices = [i for i, slot in enumerate(board) if slot == BoardSlot.Empty]
 
-        raise Exception('Not implemented')
+        if not empty_indices:
+            pass
+
+        i = random.choice(empty_indices)
+        return (i, BoardSlot.Circle)
+        # raise Exception('Not implemented')
 
     def check_win(self, board: BoardLike) -> BoardSlot:
         """
@@ -38,6 +44,7 @@ class TicTacToeAI:
 
        
         for a,b,c in win_tuples:
+            print(a)
             if board[a] == board[b] == board[c] and board[a] != BoardSlot.Empty:
                 return board[a]
         if BoardSlot.Empty not in board:
@@ -59,24 +66,40 @@ class TicTacToeAI:
                 print('Error reading')
                 return
 
-            print(detector.detect_board(frame))
+            board = detector.detect_board(frame)
 
-            # if board is None:
-            #     continue
+            if board is None:
+                continue
 
             # cv2.imshow('board', board)
             if cv2.waitKey(1) & 0xff == ord('q'):
                 break
+            
+            # alguien ya ganó
+            if self.check_win(self.previous_board) == BoardSlot.Circle:
+                print(f"Ganó: O")
+                break
+            elif self.check_win(self.previous_board) == BoardSlot.Cross:
+                print(f"Ganó X")
+                break
+            elif self.check_win(self.previous_board) == BoardSlot.Tie:
+                print("Empate")
+                break
+            else: 
+                pass
 
-            # if board:
-            #     highlight = None
-            #     if board != self.previous_board:
-            #         next_move = self.next_move(board)
+            if board:
+                highlight = None
+                if board != self.previous_board:
+                    next_move = self.next_move(board)
 
-            #         # update board state
-            #         i, slot = next_move
-            #         board[i] = slot
-            #         highlight = next_move
+                    # update board state
+                    i, slot = next_move
+                    board[i] = slot
+                    highlight = next_move
+                
+                self.previous_board = board.copy()
+
 
             # alguien ya ganó
             if self.check_win(self.previous_board) == BoardSlot.Circle:
