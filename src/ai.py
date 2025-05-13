@@ -7,6 +7,8 @@ from typing import Optional, Tuple # <--- Añadido
 import random
 from collections import Counter
 
+img_count = 0
+
 class TicTacToeAI:
     """
     The decision making of the AI. Also has the main loop.
@@ -15,8 +17,8 @@ class TicTacToeAI:
     def __init__(self, show_detections: bool = True):
         self.previous_board = [BoardSlot.Empty for _ in range(9)]
         self.show_detections = show_detections
-        self.ai_player = BoardSlot.Circle 
-        self.human_player = BoardSlot.Cross 
+        self.ai_player = BoardSlot.Circle
+        self.human_player = BoardSlot.Cross
 
     def get_empty_slots(self, board: BoardLike) -> list[int]: # <--- Método añadido
         """
@@ -66,6 +68,8 @@ class TicTacToeAI:
         Program's main loop.
         """
 
+        global img_count
+
         detector = BoardDetector()
 
         while True:
@@ -78,6 +82,8 @@ class TicTacToeAI:
 
             if board is None:
                 continue
+
+            display, points, board = board
 
             # cv2.imshow('board', board)
             if cv2.waitKey(1) & 0xff == ord('q'):
@@ -95,7 +101,7 @@ class TicTacToeAI:
                 break
             else:
                 pass
-            
+
             current_counts = Counter(board)
             previous_counts = Counter(self.previous_board)
 
@@ -111,6 +117,13 @@ class TicTacToeAI:
                     # i, slot = next_move
                     # board[i] = slot
                     highlight = next_move
+
+                    detector.draw_highlight(points, slot, i, display)
+                    cv2.imshow('out', display)
+                    cv2.imwrite(f'captura_{img_count}.jpg', display)
+                    img_count += 1
+
+                self.previous_board = board.copy()
                     
                 if ai_moved:
                     self.previous_board = board.copy()
