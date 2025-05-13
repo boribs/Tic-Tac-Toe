@@ -250,19 +250,23 @@ class BoardDetector:
         dx, dy = d
 
         slot_images = [
-            rotated[:ay, :ax],     # 0
-            rotated[:by, ax:bx],   # 1
-            rotated[:by, bx:],     # 2
-            rotated[ay:dy, :dx],   # 3
-            rotated[ay:cy, ax:cx], # 4
-            rotated[ay:cy, cx:],   # 5
-            rotated[dy:, :dx],     # 6
-            rotated[dy:, dx:cx],   # 7
-            rotated[dy:, cx:],     # 8
+            rotated[padding:ay-padding, padding:ax-padding],       # 0
+            rotated[padding:by-padding, ax+padding:bx-padding],    # 1
+            rotated[padding:by-padding, bx+padding:-padding],      # 2
+            rotated[ay+padding:dy-padding, padding:dx-padding],    # 3
+            rotated[ay+padding:cy-padding, ax+padding:cx-padding], # 4
+            rotated[ay+padding:cy-padding, cx+padding:-padding],   # 5
+            rotated[dy+padding:, padding:dx-padding],              # 6
+            rotated[dy+padding:, dx+padding:cx-padding],           # 7
+            rotated[dy+padding:, cx+padding:-padding],             # 8
         ]
 
+
+        kernel = np.ones((3, 3), np.uint8)
         for i in range(len(slot_images)):
-            cv2.imshow(f"{i}", slot_images[i])
+            erosion = cv2.erode(slot_images[i],kernel,iterations = 1)
+            print(i, self.__detect_slot(erosion))
+            cv2.imshow(f"{i}", erosion)
         cv2.waitKey(0)
 
         slots: BoardLike = []
@@ -291,7 +295,7 @@ class BoardDetector:
                 return True
             else:
                 return False
-        
+
         def findCross(image: MatLike):
             gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
             gray = cv2.GaussianBlur(gray, (5, 5), 0)
@@ -307,34 +311,31 @@ class BoardDetector:
             )
 
             if lines is None or len(lines) < 2: #pyright: ignore
-                return False 
+                return False
 
             def ccw(A: tuple[int, int], B: tuple[int, int], C: tuple[int, int]):
                 return (C[1] - A[1]) * (B[0] - A[0]) > (B[1] - A[1]) * (C[0] - A[0])
 
             def lines_intersect(l1: list[int], l2: list[int]):
                 A = (l1[0], l1[1])
-                B = (l1[2], l1[3]) 
-                C = (l2[0], l2[1]) 
-                D = (l2[2], l2[3]) 
+                B = (l1[2], l1[3])
+                C = (l2[0], l2[1])
+                D = (l2[2], l2[3])
                 return ccw(A, C, D) != ccw(B, C, D) and ccw(A, B, C) != ccw(A, B, D)
-            
+
             for i in range(len(lines)):
                 for j in range(i + 1, len(lines)):
                     line1 = lines[i][0]
                     line2 = lines[j][0]
 
                     if lines_intersect(line1, line2):
-                        return True    
-            
+                        return True
+
             return False
-            
+
         if findCircle(slot):
             return BoardSlot.Circle
         elif findCross(slot):
             return BoardSlot.Cross
         else:
             return BoardSlot.Empty
-        
-    
-    
