@@ -20,72 +20,30 @@ class TicTacToeAI:
 
         raise Exception('Not implemented')
 
-    def check_win(self, board: BoardLike) -> bool:
+    def check_win(self, board: BoardLike) -> BoardSlot:
         """
         Checks for win condition: 3 in a row.
         """
-        win_tuples = [(0,1,2),
+        
+        win_tuples = [(0,1,2), # filas
                       (3,4,5),
                       (6,7,8),
-                      (0,3,6),
+                      (0,3,6),# columnas
                       (1,4,7),
                       (2,5,8),
-                      (0,4,8),
+                      (0,4,8),# diagonales
                       (2,4,6),
                       ]
-        
-        def checkRows(board:BoardLike):
-            global jugador
-                for element in board:
-                    
-                    if item != element:
-                        win_check = False
-                if win_check == True:
-                    jugador=item
-                    return win_check
-            return win_check
 
-        def checkColumns(board:BoardLike):
-            global jugador
-            for column in range(0,3):
-                element = board[0][column]
-                win_check = True
-                for row in range(1,3):
-                    item = board[row][column]
-                    if item != element:
-                        win_check = False
-                if win_check == True:
-                    jugador=item
-                    return win_check
-            return win_check
-
-        def checkDiag(board:BoardLike):
-            global jugador
-            element = board[0][0]
-            win_check = True
-            for i in range(3):
-                item = board[i][i]
-                if item != element:
-                    win_check = False
-            if win_check == True:
-                jugador=item
-                return win_check
-            
-            win_check = True
-            element = board[0][2]
-            for j in range(3):
-                item = board[j][3-j-1]
-                if item != element:
-                    win_check = False
-            if win_check == True:
-                jugador=item
-                return win_check
-            return win_check
-        win_check = checkColumns(board)
-        win_check = win_check ^ checkRows(board)
-        win_check = win_check ^ checkDiag(board)
-
-        raise Exception('Not implemented')
+       
+        for a,b,c in win_tuples:
+            if board[a] == board[b] == board[c] and board[a] != BoardSlot.Empty:
+                return board[a]
+        if BoardSlot.Empty not in board:
+            return BoardSlot.Tie
+        else:
+            return BoardSlot.Empty
+           
 
     def main(self):
         """
@@ -95,12 +53,12 @@ class TicTacToeAI:
         detector = BoardDetector()
 
         while True:
-            ok, frame = detector.cam.read()
+            ok, frame = detector.cam.read() # pyright: ignore
             if not ok:
                 print('Error reading')
                 return
 
-            board = detector.detect_board(frame)
+            board = detector.detect_board(frame) # pyright: ignore
 
             if board:
                 highlight = None
@@ -118,7 +76,15 @@ class TicTacToeAI:
                     detector.show_detected(highlight)
 
             # alguien ya ganó
-            if self.check_win(self.previous_board):
-                # mostrar quién ganó (en la misma ventana)
-                # esperar a que presione alguna tecla para salir
+            if self.check_win(self.previous_board) == BoardSlot.Circle:
+                print(f"Ganó: O")
                 break
+            elif self.check_win(self.previous_board) == BoardSlot.Cross:
+                print(f"Ganó X")
+                break
+            elif self.check_win(self.previous_board) == BoardSlot.Tie:
+                print("Empate")
+                break
+            else: 
+                pass
+

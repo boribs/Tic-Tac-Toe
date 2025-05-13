@@ -10,6 +10,7 @@ class BoardSlot(Enum):
     Empty = auto()
     Cross = auto()
     Circle = auto()
+    Tie = auto()
 
 # Representation of the board
 type BoardLike = list[BoardSlot]
