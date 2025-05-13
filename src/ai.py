@@ -90,9 +90,9 @@ class TicTacToeAI:
 
             if board:
                 highlight = None
-                if board != self.previous_board:
+                if board != self.previous_board and BoardSlot.Empty in board:
                     next_move = self.next_move(board)
-
+                    print(next_move)
                     # update board state
                     i, slot = next_move
                     board[i] = slot
