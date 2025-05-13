@@ -1,5 +1,6 @@
 # pyright: strict
 
+import cv2
 from src.commons import *
 from src.vision import BoardDetector
 
@@ -58,22 +59,24 @@ class TicTacToeAI:
                 print('Error reading')
                 return
 
-            board = detector.detect_board(frame) # pyright: ignore
+            print(detector.detect_board(frame))
 
-            if board:
-                highlight = None
-                if board != self.previous_board:
-                    next_move = self.next_move(board)
+            # if board is None:
+            #     continue
 
-                    # update board state
-                    i, slot = next_move
-                    board[i] = slot
-                    highlight = next_move
+            # cv2.imshow('board', board)
+            if cv2.waitKey(1) & 0xff == ord('q'):
+                break
 
-                    self.previous_board = board
+            # if board:
+            #     highlight = None
+            #     if board != self.previous_board:
+            #         next_move = self.next_move(board)
 
-                if self.show_detections:
-                    detector.show_detected(highlight)
+            #         # update board state
+            #         i, slot = next_move
+            #         board[i] = slot
+            #         highlight = next_move
 
             # alguien ya ganó
             if self.check_win(self.previous_board) == BoardSlot.Circle:
@@ -87,4 +90,3 @@ class TicTacToeAI:
                 break
             else: 
                 pass
-

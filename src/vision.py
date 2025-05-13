@@ -7,6 +7,9 @@ import cv2
 from cv2.typing import MatLike, Point
 import math
 
+def pdist(a: Point, b: Point) -> float:
+    return ((a[0] - b[0])**2 + (a[1] - b[1])**2)**0.5
+
 
 class BoardDetector:
     """
@@ -14,8 +17,7 @@ class BoardDetector:
     """
 
     def __init__(self, cam_id: int = 0):
-        self.detected_lines = []
-        # self.cam = cv2.VideoCapture(cam_id)
+        self.cam = cv2.VideoCapture(cam_id)
 
     def show_detected(self, highlight: tuple[int, BoardSlot] | None):
         """
@@ -30,21 +32,20 @@ class BoardDetector:
 
     def detect_board(self, img: MatLike) -> BoardLike | None:
         """
-        Finds a board in an image. Updates self.detected_lines and
-        returns new filled BoardLike.
+        Finds a board in an image. Returns a filled BoardLike.
         """
 
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        kernel = np.ones((5,5), np.uint8)
+        kernel = np.ones((3,3), np.uint8)
 
         # turn into thresholded binary
-        _, thresh1 = cv2.threshold(gray, 127, 255, cv2.THRESH_BINARY)
+        _, thresh1 = cv2.threshold(gray, 120, 255, cv2.THRESH_BINARY)
 
         # remove noise from binary
         thresh1 = cv2.morphologyEx(thresh1, cv2.MORPH_OPEN, kernel)
 
         t = cv2.bitwise_not(thresh1)
-        cv2.imshow('out', t)
+        # cv2.imshow('out', t)
         # cv2.waitKey(0)
 
         contours, _ = cv2.findContours(t, 1, cv2.CHAIN_APPROX_SIMPLE)
@@ -53,10 +54,11 @@ class BoardDetector:
             contours,
             -1,
             (255,255,255),
-            4
+            5
         )
-        cv2.imshow('out', conts)
-        cv2.waitKey(0)
+
+        # cv2.imshow('out', conts)
+        # cv2.waitKey(0)
 
         lines = cv2.HoughLinesP(
             conts,
@@ -80,8 +82,8 @@ class BoardDetector:
             cv2.line(out, (x1, y1), (x2, y2), (0,255,0) if i else (255,0,0), 1) # pyright: ignore
             i = not i
 
-        cv2.imshow('out', out)
-        cv2.waitKey(0)
+        # cv2.imshow('out', out)
+        # cv2.waitKey(0)
 
         for i, line in enumerate(lines):
             for j, line2 in enumerate(lines):
@@ -107,24 +109,33 @@ class BoardDetector:
             return None
 
         a, b, c, d = rects[0]
-        cv2.line(out, a, b, (255, 0, 255), 3)
-        cv2.line(out, b, c, (0, 0, 255), 3)
-        cv2.line(out, c, d, (0, 0, 255), 3)
-        cv2.line(out, d, a, (0, 0, 255), 3)
+        # cv2.line(out, a, b, (255, 0, 255), 3)
+        # cv2.line(out, b, c, (0, 0, 255), 3)
+        # cv2.line(out, c, d, (0, 0, 255), 3)
+        # cv2.line(out, d, a, (0, 0, 255), 3)
+        # cv2.circle(out, a, 3, (255,0,0), 3)
+        # cv2.circle(out, c, 3, (255,0,0), 3)
 
-        cv2.imshow('out', out)
-        cv2.waitKey(0)
+        # cv2.imshow('out', out)
+        # cv2.waitKey(0)
 
         for cnt in contours:
             inside = cv2.pointPolygonTest(cnt, a, False)
             if inside >= 0:
-                x,y,w,h = cv2.boundingRect(cnt)
+                x, y, w, h = cv2.boundingRect(cnt)
+                if x < 10 or y < 10 or w < 10 or h < 10:
+                    continue
+
                 cv2.rectangle(out,(x,y),(x+w,y+h),(0,255,0),2)
-                cv2.imshow('out', out)
-                cv2.waitKey(0)
+
+                cv2.drawContours(img, [cnt], 0, (255, 0, 0), 2)
+
+                # cv2.imshow('out', out)
+                # cv2.waitKey(0)
 
                 padding = 10
-                cropped = cv2.cvtColor(conts.copy()[y-padding:y+h+padding, x-padding:x+w+padding], cv2.COLOR_GRAY2BGR)
+                # cropped = cv2.cvtColor(conts.copy()[y-padding:y+h+padding, x-padding:x+w+padding], cv2.COLOR_GRAY2BGR)
+                cropped = img.copy()[y-padding:y+h+padding, x-padding:x+w+padding]
                 rows, cols, _ = cropped.shape
                 rot = math.atan2((a[1] - b[1]), (a[0] - b[0]))
 
@@ -138,18 +149,18 @@ class BoardDetector:
                 # rotar imagen para que el tablero quede derecho
                 mat = cv2.getRotationMatrix2D(center, rot * 180 / math.pi, 1)
                 rotated = cv2.warpAffine(cropped, mat, (cols, rows))
+                display = rotated.copy()
 
-                cv2.circle(rotated, a, 3, (0,0,255), 3)
-                cv2.circle(rotated, b, 3, (255,0,255), 3)
-                cv2.circle(rotated, c, 3, (0,255,0), 3)
-                cv2.circle(rotated, d, 3, (255,0,0), 3)
+                cv2.circle(display, a, 3, (0,0,255), 3)
+                cv2.circle(display, b, 3, (255,0,255), 3)
+                cv2.circle(display, c, 3, (0,255,0), 3)
+                cv2.circle(display, d, 3, (255,0,0), 3)
 
-                cv2.imshow('out', rotated)
-                cv2.waitKey(0)
+                cv2.imshow('out', display)
+                # cv2.waitKey(0)
 
-                _ = self.__extract_slots(rotated, b, a, d, c)
-
-                break
+                return self.__extract_slots(rotated, [a, b, c, d])
+        return None
 
     def __rotate_point(self, p: Point, around: Point, angle: float) -> Point:
         """
@@ -206,9 +217,6 @@ class BoardDetector:
         # Dos parejas de puntos serán los vértices de un rectángulo si sus distancias
         # son iguales y sus sumas son iguales.
 
-        def pdist(a: Point, b: Point) -> float:
-            return ((a[0] - b[0])**2 + (a[1] - b[1])**2)**0.5
-
         def similar(a: Point | float, b: Point | float):
             if type(a) != float and type(b) != float:
                 return abs(a[0] - b[0]) < threshold and abs(a[1] - b[1]) < threshold # pyright: ignore
@@ -235,19 +243,44 @@ class BoardDetector:
 
                 if similar(line_dist[a], line_dist[b]) and \
                     similar(line_sum[a], line_sum[b]):
-                    out.append((points[a[0]], points[b[0]], points[a[1]], points[b[1]]))
+                    h, j, k, l = (points[a[0]], points[b[0]], points[a[1]], points[b[1]])
+
+                    a = pdist(h, j)
+                    b = pdist(k, l)
+                    if a < 600 and b < 600 and (min(a, b) / max(a, b) > 0.7):
+                        out.append((h, j, k, l))
 
         return out
 
-    def __extract_slots(self, rotated: MatLike, a: Point, b: Point, c: Point, d: Point, padding: int = 2) -> BoardLike:
+    def __extract_slots(self, rotated: MatLike, points: list[Point], padding: int = 8) -> BoardLike:
         """
         Extracts the different slot images and analyzes them.
         """
 
-        ax, ay = a
-        bx, by = b
-        cx, cy = c
-        dx, dy = d
+        a, b, c, d = 0, 0, 0, 0
+        m = 1000000
+        dists = [pdist(p, (0, 0)) for p in points]
+
+        for i, dist in enumerate(dists):
+            if dist < m:
+                m = dists[i]
+                a = i
+
+        for i in range(len(points)):
+            if i == a: continue
+
+            point = points[i]
+            if abs(point[1] - points[a][1]) < 20:
+                b = i
+            elif abs(point[0] - points[a][0]) < 20:
+                d = i
+            else:
+                c = i
+
+        ax, ay = points[a]
+        bx, by = points[b]
+        cx, cy = points[c]
+        dx, dy = points[d]
 
         slot_images = [
             rotated[padding:ay-padding, padding:ax-padding],       # 0
@@ -261,15 +294,44 @@ class BoardDetector:
             rotated[dy+padding:, cx+padding:-padding],             # 8
         ]
 
+        height, width = rotated.shape[:2]
+        slot_positions = [
+            (ay // 2, ax // 2),                      # 0
+            (ay // 2, (bx + ax) // 2),               # 1
+            (by // 2, (width + bx) // 2),            # 2
+            ((dy + ay) // 2, dx // 2),               # 3
+            ((cy + ay) // 2, (cx + ax) // 2),        # 4
+            ((cy + ay) // 2, (width + cx) // 2),     # 5
+            ((height + dy) // 2, dx // 2),           # 6
+            ((height + dy) // 2, (cx + dx) // 2),    # 7
+            ((height + dy) // 2, (width + cx) // 2), # 8
+        ]
+
+        slots: BoardLike = []
 
         kernel = np.ones((3, 3), np.uint8)
         for i in range(len(slot_images)):
-            erosion = cv2.erode(slot_images[i],kernel,iterations = 1)
-            print(i, self.__detect_slot(erosion))
-            cv2.imshow(f"{i}", erosion)
-        cv2.waitKey(0)
 
-        slots: BoardLike = []
+            shape = slot_images[i].shape
+            if shape[0] < 10 or shape[1] < 10:
+                return []
+
+            erosion = cv2.erode(slot_images[i], kernel, iterations=1)
+            slot = self.__detect_slot(erosion)
+
+            slots.append(slot)
+
+            if slot == BoardSlot.Circle:
+                cv2.circle(rotated, slot_positions[i][::-1], 10, (0, 255, 0), 2)
+                print(slot_positions[i])
+            elif slot == BoardSlot.Cross:
+                pass
+                j, k = slot_positions[i][::-1]
+                cv2.line(rotated, (j - 10, k - 10), (j + 10, k + 10), (0, 255, 0), 2)
+                cv2.line(rotated, (j + 10, k - 10), (j - 10, k + 10), (0, 255, 0), 2)
+
+        cv2.imshow('out', rotated)
+
         return slots
 
 
@@ -289,7 +351,7 @@ class BoardDetector:
                 param2=30,
                 minRadius=3,
                 maxRadius=50
-                )
+            )
 
             if circles is not None: # pyright: ignore
                 return True
