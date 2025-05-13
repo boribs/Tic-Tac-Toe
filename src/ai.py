@@ -11,6 +11,7 @@ class TicTacToeAI:
     def __init__(self, show_detections: bool = True):
         self.previous_board = [BoardSlot.Empty for _ in range(9)]
         self.show_detections = show_detections
+        self.jugador = None
 
     def next_move(self, board: BoardLike) -> tuple[int, BoardSlot]:
         """
@@ -23,6 +24,66 @@ class TicTacToeAI:
         """
         Checks for win condition: 3 in a row.
         """
+        win_tuples = [(0,1,2),
+                      (3,4,5),
+                      (6,7,8),
+                      (0,3,6),
+                      (1,4,7),
+                      (2,5,8),
+                      (0,4,8),
+                      (2,4,6),
+                      ]
+        
+        def checkRows(board:BoardLike):
+            global jugador
+                for element in board:
+                    
+                    if item != element:
+                        win_check = False
+                if win_check == True:
+                    jugador=item
+                    return win_check
+            return win_check
+
+        def checkColumns(board:BoardLike):
+            global jugador
+            for column in range(0,3):
+                element = board[0][column]
+                win_check = True
+                for row in range(1,3):
+                    item = board[row][column]
+                    if item != element:
+                        win_check = False
+                if win_check == True:
+                    jugador=item
+                    return win_check
+            return win_check
+
+        def checkDiag(board:BoardLike):
+            global jugador
+            element = board[0][0]
+            win_check = True
+            for i in range(3):
+                item = board[i][i]
+                if item != element:
+                    win_check = False
+            if win_check == True:
+                jugador=item
+                return win_check
+            
+            win_check = True
+            element = board[0][2]
+            for j in range(3):
+                item = board[j][3-j-1]
+                if item != element:
+                    win_check = False
+            if win_check == True:
+                jugador=item
+                return win_check
+            return win_check
+        win_check = checkColumns(board)
+        win_check = win_check ^ checkRows(board)
+        win_check = win_check ^ checkDiag(board)
 
         raise Exception('Not implemented')
 
