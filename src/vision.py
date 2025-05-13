@@ -235,7 +235,10 @@ class BoardDetector:
 
                 if similar(line_dist[a], line_dist[b]) and \
                     similar(line_sum[a], line_sum[b]):
-                    out.append((points[a[0]], points[b[0]], points[a[1]], points[b[1]]))
+                    h, j, k, l = (points[a[0]], points[b[0]], points[a[1]], points[b[1]])
+
+                    if pdist(h, j) < 600 and pdist(k, l) < 600:
+                        out.append((h, j, k, l))
 
         return out
 
