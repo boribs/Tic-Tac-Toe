@@ -252,7 +252,7 @@ class BoardDetector:
 
         return out
 
-    def __extract_slots(self, rotated: MatLike, points: list[Point], padding: int = 2) -> BoardLike:
+    def __extract_slots(self, rotated: MatLike, points: list[Point], padding: int = 8) -> BoardLike:
         """
         Extracts the different slot images and analyzes them.
         """
