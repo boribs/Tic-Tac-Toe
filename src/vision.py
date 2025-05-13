@@ -294,14 +294,44 @@ class BoardDetector:
             rotated[dy+padding:, cx+padding:-padding],             # 8
         ]
 
-        kernel = np.ones((3, 3), np.uint8)
-        for i in range(len(slot_images)):
-            erosion = cv2.erode(slot_images[i], kernel, iterations=1)
-            print(i, self.__detect_slot(erosion))
-            # cv2.imshow(f"{i}", erosion)
-        # cv2.waitKey(0)
+        height, width = rotated.shape[:2]
+        slot_positions = [
+            (ay // 2, ax // 2),                      # 0
+            (ay // 2, (bx + ax) // 2),               # 1
+            (by // 2, (width + bx) // 2),            # 2
+            ((dy + ay) // 2, dx // 2),               # 3
+            ((cy + ay) // 2, (cx + ax) // 2),        # 4
+            ((cy + ay) // 2, (width + cx) // 2),     # 5
+            ((height + dy) // 2, dx // 2),           # 6
+            ((height + dy) // 2, (cx + dx) // 2),    # 7
+            ((height + dy) // 2, (width + cx) // 2), # 8
+        ]
 
         slots: BoardLike = []
+
+        kernel = np.ones((3, 3), np.uint8)
+        for i in range(len(slot_images)):
+
+            shape = slot_images[i].shape
+            if shape[0] < 10 or shape[1] < 10:
+                return []
+
+            erosion = cv2.erode(slot_images[i], kernel, iterations=1)
+            slot = self.__detect_slot(erosion)
+
+            slots.append(slot)
+
+            if slot == BoardSlot.Circle:
+                cv2.circle(rotated, slot_positions[i][::-1], 10, (0, 255, 0), 2)
+                print(slot_positions[i])
+            elif slot == BoardSlot.Cross:
+                pass
+                j, k = slot_positions[i][::-1]
+                cv2.line(rotated, (j - 10, k - 10), (j + 10, k + 10), (0, 255, 0), 2)
+                cv2.line(rotated, (j + 10, k - 10), (j - 10, k + 10), (0, 255, 0), 2)
+
+        cv2.imshow('out', rotated)
+
         return slots
 
 
