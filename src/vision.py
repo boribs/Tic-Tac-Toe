@@ -349,7 +349,7 @@ class BoardDetector:
                 minDist=20,
                 param1=50,
                 param2=30,
-                minRadius=5,
+                minRadius=3,
                 maxRadius=50
             )
 
