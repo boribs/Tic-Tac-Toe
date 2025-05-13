@@ -14,6 +14,14 @@ class TicTacToeAI:
     def __init__(self, show_detections: bool = True):
         self.previous_board = [BoardSlot.Empty for _ in range(9)]
         self.show_detections = show_detections
+        self.ai_player = BoardSlot.Cross 
+        self.human_player = BoardSlot.Circle 
+
+    def get_empty_slots(self, board: BoardLike) -> list[int]: # <--- Método añadido
+        """
+        Devuelve una lista con los índices de las casillas vacías.
+        """
+        return [i for i, slot in enumerate(board) if slot == BoardSlot.Empty]
 
     def next_move(self, board: BoardLike) -> Optional[Tuple[int, BoardSlot]]:
         """
