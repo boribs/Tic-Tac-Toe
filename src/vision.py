@@ -30,7 +30,7 @@ class BoardDetector:
         raise Exception('Not implemented')
 
 
-    def detect_board(self, img: MatLike) -> BoardLike | None:
+    def detect_board(self, img: MatLike) -> tuple[MatLike, list[Point], BoardLike] | None:
         """
         Finds a board in an image. Returns a filled BoardLike.
         """
@@ -159,8 +159,45 @@ class BoardDetector:
                 cv2.imshow('out', display)
                 # cv2.waitKey(0)
 
-                return self.__extract_slots(rotated, [a, b, c, d])
+                return (
+                    display,
+                    [a, b, c, d],
+                    self.__extract_slots(rotated, [a, b, c, d], display)
+                )
         return None
+
+    def draw_highlight(self, points: list[Point], highlight: BoardSlot, i: int, display: MatLike):
+        """
+        Draws
+        """
+
+        a, b, c, d = points
+        ax, ay = a
+        bx, by = b
+        cx, cy = c
+        dx, dy = d
+
+        height, width = display.shape[:2]
+        slot_positions = [
+            (ay // 2, ax // 2),                      # 0
+            (ay // 2, (bx + ax) // 2),               # 1
+            (by // 2, (width + bx) // 2),            # 2
+            ((dy + ay) // 2, dx // 2),               # 3
+            ((cy + ay) // 2, (cx + ax) // 2),        # 4
+            ((cy + ay) // 2, (width + cx) // 2),     # 5
+            ((height + dy) // 2, dx // 2),           # 6
+            ((height + dy) // 2, (cx + dx) // 2),    # 7
+            ((height + dy) // 2, (width + cx) // 2), # 8
+        ]
+
+        if highlight == BoardSlot.Circle:
+            cv2.circle(display, slot_positions[i][::-1], 10, (255, 0, 0), 2)
+            print(slot_positions[i])
+        elif highlight == BoardSlot.Cross:
+            pass
+            j, k = slot_positions[i][::-1]
+            cv2.line(display, (j - 10, k - 10), (j + 10, k + 10), (255, 0, 0), 2)
+            cv2.line(display, (j + 10, k - 10), (j - 10, k + 10), (255, 0, 0), 2)
 
     def __rotate_point(self, p: Point, around: Point, angle: float) -> Point:
         """
@@ -252,7 +289,7 @@ class BoardDetector:
 
         return out
 
-    def __extract_slots(self, rotated: MatLike, points: list[Point], padding: int = 8) -> BoardLike:
+    def __extract_slots(self, rotated: MatLike, points: list[Point], display: MatLike, padding: int = 8) -> BoardLike:
         """
         Extracts the different slot images and analyzes them.
         """
@@ -322,15 +359,15 @@ class BoardDetector:
             slots.append(slot)
 
             if slot == BoardSlot.Circle:
-                cv2.circle(rotated, slot_positions[i][::-1], 10, (0, 255, 0), 2)
+                cv2.circle(display, slot_positions[i][::-1], 10, (0, 255, 0), 2)
                 print(slot_positions[i])
             elif slot == BoardSlot.Cross:
                 pass
                 j, k = slot_positions[i][::-1]
-                cv2.line(rotated, (j - 10, k - 10), (j + 10, k + 10), (0, 255, 0), 2)
-                cv2.line(rotated, (j + 10, k - 10), (j - 10, k + 10), (0, 255, 0), 2)
+                cv2.line(display, (j - 10, k - 10), (j + 10, k + 10), (0, 255, 0), 2)
+                cv2.line(display, (j + 10, k - 10), (j - 10, k + 10), (0, 255, 0), 2)
 
-        cv2.imshow('out', rotated)
+        cv2.imshow('out', display)
 
         return slots
 
