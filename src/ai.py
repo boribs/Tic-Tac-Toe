@@ -121,6 +121,7 @@ class TicTacToeAI:
                     detector.draw_highlight(points, slot, i, display)
                     cv2.imshow('out', display)
                     cv2.imwrite(f'captura_{img_count}.jpg', display)
+                    img_count += 1
                 if ai_moved:
                     self.previous_board = board.copy()
 
