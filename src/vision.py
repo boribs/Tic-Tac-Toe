@@ -134,7 +134,8 @@ class BoardDetector:
                 # cv2.waitKey(0)
 
                 padding = 10
-                cropped = cv2.cvtColor(conts.copy()[y-padding:y+h+padding, x-padding:x+w+padding], cv2.COLOR_GRAY2BGR)
+                # cropped = cv2.cvtColor(conts.copy()[y-padding:y+h+padding, x-padding:x+w+padding], cv2.COLOR_GRAY2BGR)
+                cropped = img.copy()[y-padding:y+h+padding, x-padding:x+w+padding]
                 rows, cols, _ = cropped.shape
                 rot = math.atan2((a[1] - b[1]), (a[0] - b[0]))
 
@@ -148,13 +149,14 @@ class BoardDetector:
                 # rotar imagen para que el tablero quede derecho
                 mat = cv2.getRotationMatrix2D(center, rot * 180 / math.pi, 1)
                 rotated = cv2.warpAffine(cropped, mat, (cols, rows))
+                display = rotated.copy()
 
-                cv2.circle(rotated, a, 3, (0,0,255), 3)
-                cv2.circle(rotated, b, 3, (255,0,255), 3)
-                cv2.circle(rotated, c, 3, (0,255,0), 3)
-                cv2.circle(rotated, d, 3, (255,0,0), 3)
+                cv2.circle(display, a, 3, (0,0,255), 3)
+                cv2.circle(display, b, 3, (255,0,255), 3)
+                cv2.circle(display, c, 3, (0,255,0), 3)
+                cv2.circle(display, d, 3, (255,0,0), 3)
 
-                cv2.imshow('out', rotated)
+                cv2.imshow('out', display)
                 # cv2.waitKey(0)
 
                 return self.__extract_slots(rotated, [a, b, c, d])
