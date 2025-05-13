@@ -3,6 +3,7 @@
 import cv2
 from src.commons import *
 from src.vision import BoardDetector
+from typing import Optional, Tuple # <--- Añadido
 import random
 
 class TicTacToeAI:
