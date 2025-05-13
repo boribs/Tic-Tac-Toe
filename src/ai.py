@@ -100,6 +100,7 @@ class TicTacToeAI:
             previous_counts = Counter(self.previous_board)
 
             opponent_moved = current_counts[BoardSlot.Cross] != previous_counts[BoardSlot.Cross]
+            ai_moved = current_counts[BoardSlot.Circle] != previous_counts[BoardSlot.Circle]
 
             if board:
                 highlight = None
@@ -110,8 +111,9 @@ class TicTacToeAI:
                     i, slot = next_move
                     board[i] = slot
                     highlight = next_move
-
-                self.previous_board = board.copy()
+                    
+                if ai_moved:
+                    self.previous_board = board.copy()
 
 
             # alguien ya ganó
